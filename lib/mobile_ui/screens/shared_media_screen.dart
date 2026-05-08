@@ -228,7 +228,7 @@ class SharedMediaScreen extends ConsumerWidget {
                   ),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.redAccent),
-                    onPressed: () => notifier.removeMedia(item.id),
+                    onPressed: () => notifier.removeMedia(item.mediaId),
                   ),
                   onTap: () {
                     if (isFolder) {

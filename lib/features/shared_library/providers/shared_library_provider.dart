@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -78,8 +77,8 @@ class SharedLibraryNotifier extends StateNotifier<List<MediaItem>> {
     }
   }
 
-  Future<void> removeMedia(int id) async {
-    await _db.removeMediaItem(id);
+  Future<void> removeMedia(String mediaId) async {
+    await _db.removeMediaItem(mediaId);
     await _loadItems();
   }
 }

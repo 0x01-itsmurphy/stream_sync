@@ -14,7 +14,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
 
-  // Initialize Local Database (Isar)
+  // Initialize Local Database (Hive)
   final dbService = DatabaseService();
   await dbService.init();
 

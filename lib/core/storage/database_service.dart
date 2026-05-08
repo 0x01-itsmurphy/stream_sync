@@ -1,5 +1,4 @@
-import 'package:isar/isar.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'models/device_node.dart';
@@ -10,49 +9,44 @@ final databaseServiceProvider = Provider<DatabaseService>((ref) {
 });
 
 class DatabaseService {
-  late final Isar _isar;
-
-  Isar get isar => _isar;
+  late final Box<DeviceNode> _deviceBox;
+  late final Box<MediaItem> _mediaBox;
 
   Future<void> init() async {
-    final dir = await getApplicationDocumentsDirectory();
-    _isar = await Isar.open(
-      [DeviceNodeSchema, MediaItemSchema],
-      directory: dir.path,
-    );
+    await Hive.initFlutter();
+
+    Hive.registerAdapter(MediaItemAdapter());
+    Hive.registerAdapter(DeviceNodeAdapter());
+
+    _deviceBox = await Hive.openBox<DeviceNode>('devices');
+    _mediaBox = await Hive.openBox<MediaItem>('media');
   }
 
   // DeviceNode operations
   Future<void> saveDevice(DeviceNode device) async {
-    await _isar.writeTxn(() async {
-      await _isar.deviceNodes.put(device);
-    });
+    await _deviceBox.put(device.deviceId, device);
   }
 
   Future<List<DeviceNode>> getAllDevices() async {
-    return await _isar.deviceNodes.where().findAll();
+    return _deviceBox.values.toList();
   }
 
   Future<void> clearDevices() async {
-    await _isar.writeTxn(() async {
-      await _isar.deviceNodes.clear();
-    });
+    await _deviceBox.clear();
   }
 
   // MediaItem operations
   Future<void> saveMediaItems(List<MediaItem> items) async {
-    await _isar.writeTxn(() async {
-      await _isar.mediaItems.putAll(items);
-    });
+    for (final item in items) {
+      await _mediaBox.put(item.mediaId, item);
+    }
   }
 
   Future<List<MediaItem>> getAllMediaItems() async {
-    return await _isar.mediaItems.where().findAll();
+    return _mediaBox.values.toList();
   }
-  
-  Future<void> removeMediaItem(int id) async {
-    await _isar.writeTxn(() async {
-      await _isar.mediaItems.delete(id);
-    });
+
+  Future<void> removeMediaItem(String mediaId) async {
+    await _mediaBox.delete(mediaId);
   }
 }

@@ -1,24 +1,28 @@
-import 'package:isar/isar.dart';
+import 'package:hive/hive.dart';
 
 part 'media_item.g.dart';
 
-@collection
-class MediaItem {
-  Id id = Isar.autoIncrement;
-
-  @Index(unique: true)
+@HiveType(typeId: 0)
+class MediaItem extends HiveObject {
+  @HiveField(0)
   late String mediaId;
 
+  @HiveField(1)
   late String name;
-  
+
+  @HiveField(2)
   late String path;
-  
+
+  @HiveField(3)
   late String type;
-  
+
+  @HiveField(4)
   late int size;
-  
-  late int durationMillis; // Duration stored in milliseconds
-  
+
+  @HiveField(5)
+  late int durationMillis;
+
+  @HiveField(6)
   late String thumbnailPath;
 
   MediaItem({
@@ -31,8 +35,5 @@ class MediaItem {
     this.thumbnailPath = '',
   });
 
-  MediaItem.empty(); // Required for Isar
-  
-  @ignore
   Duration get duration => Duration(milliseconds: durationMillis);
 }
