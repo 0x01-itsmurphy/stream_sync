@@ -91,12 +91,32 @@ class _StreamSyncAppState extends ConsumerState<StreamSyncApp> {
     return MaterialApp(
       title: 'StreamSync',
       navigatorKey: navigatorKey,
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.deepPurple,
           brightness: Brightness.dark,
+          surface: const Color(0xFF121218),
         ),
+        scaffoldBackgroundColor: const Color(0xFF121218),
         useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF121218),
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+        ),
+        cardTheme: CardThemeData(
+          color: const Color(0xFF1E1E2E),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+        snackBarTheme: const SnackBarThemeData(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Color(0xFF2A2A3E),
+        ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: Colors.deepPurpleAccent,
+          foregroundColor: Colors.white,
+        ),
       ),
       home: const ResponsiveHomeWrapper(),
     );

@@ -14,21 +14,27 @@ class RemoteMediaScreen extends StatefulWidget {
   State<RemoteMediaScreen> createState() => _RemoteMediaScreenState();
 }
 
-class _RemoteMediaScreenState extends State<RemoteMediaScreen> {
+class _RemoteMediaScreenState extends State<RemoteMediaScreen> with SingleTickerProviderStateMixin {
   bool _isApproved = false;
   bool _isError = false;
   List<dynamic> _mediaItems = [];
   Timer? _pollingTimer;
+  late AnimationController _waitController;
 
   @override
   void initState() {
     super.initState();
+    _waitController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
     _fetchMedia();
   }
 
   @override
   void dispose() {
     _pollingTimer?.cancel();
+    _waitController.dispose();
     super.dispose();
   }
 
@@ -39,7 +45,6 @@ class _RemoteMediaScreenState extends State<RemoteMediaScreen> {
           .timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 403) {
-        // Pending approval. Poll again.
         if (mounted && !_isApproved) {
           _pollingTimer?.cancel();
           _pollingTimer = Timer(const Duration(seconds: 2), _fetchMedia);
@@ -57,7 +62,6 @@ class _RemoteMediaScreenState extends State<RemoteMediaScreen> {
         if (mounted) setState(() => _isError = true);
       }
     } catch (e) {
-      // Timeout or connection error, maybe server is booting up or still blocking
       if (mounted && !_isApproved) {
         _pollingTimer?.cancel();
         _pollingTimer = Timer(const Duration(seconds: 2), _fetchMedia);
@@ -65,23 +69,58 @@ class _RemoteMediaScreenState extends State<RemoteMediaScreen> {
     }
   }
 
+  String _formatSize(num bytes) {
+    if (bytes >= 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+    }
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Waiting for approval state
     if (!_isApproved) {
       return Scaffold(
-        appBar: AppBar(title: Text(widget.serverIp)),
-        body: const Center(
+        appBar: AppBar(
+          title: Text(widget.serverIp),
+        ),
+        body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 24),
+              AnimatedBuilder(
+                animation: _waitController,
+                builder: (_, __) {
+                  final scale = 1.0 + (_waitController.value * 0.1);
+                  return Transform.scale(
+                    scale: scale,
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.orangeAccent.withValues(alpha: 0.1),
+                        border: Border.all(
+                          color: Colors.orangeAccent.withValues(alpha: 0.3),
+                          width: 2,
+                        ),
+                      ),
+                      child: const Icon(Icons.handshake_outlined, size: 48, color: Colors.orangeAccent),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                'Waiting for approval...',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 32.0),
+                padding: const EdgeInsets.symmetric(horizontal: 48),
                 child: Text(
-                  'Waiting for approval...\n\nPlease check the Host device and tap "Allow" to connect.',
+                  'Open StreamSync on the host device and tap "Allow" to grant access.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16),
+                  style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                 ),
               ),
             ],
@@ -90,49 +129,118 @@ class _RemoteMediaScreenState extends State<RemoteMediaScreen> {
       );
     }
 
+    // Error state
     if (_isError) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.serverIp)),
-        body: const Center(
-          child: Text('Failed to load media. Host might be offline.'),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.cloud_off, size: 64, color: Colors.grey[700]),
+              const SizedBox(height: 16),
+              Text(
+                'Host seems to be offline',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.grey[500]),
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+                style: FilledButton.styleFrom(backgroundColor: Colors.deepPurpleAccent),
+                onPressed: () {
+                  setState(() => _isError = false);
+                  _fetchMedia();
+                },
+              ),
+            ],
+          ),
         ),
       );
     }
 
+    // Connected — show media
     return Scaffold(
-      appBar: AppBar(title: const Text('Shared Library')),
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Remote Library', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            Text(
+              widget.serverIp,
+              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchMedia,
+          ),
+        ],
+      ),
       body: _mediaItems.isEmpty
-          ? const Center(child: Text('No media available on host.'))
-          : ListView.builder(
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.video_library_outlined, size: 72, color: Colors.grey[700]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No media on this host',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[500]),
+                  ),
+                ],
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              separatorBuilder: (_, __) => const SizedBox(height: 2),
               itemCount: _mediaItems.length,
               itemBuilder: (context, index) {
                 final item = _mediaItems[index];
                 final isFolder = item['type'] == 'folder';
 
                 return ListTile(
-                  leading: isFolder
-                      ? const Icon(Icons.folder, size: 40, color: Colors.orangeAccent)
-                      : (item['thumbnail'] != null && item['thumbnail'].toString().isNotEmpty
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: Image.network(
-                                'http://${widget.serverIp}:8080/thumb/${item['id']}',
-                                width: 60,
-                                height: 60,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Icon(Icons.video_file, size: 40, color: Colors.deepPurpleAccent),
-                              ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(
+                      width: 64,
+                      height: 48,
+                      child: isFolder
+                          ? Container(
+                              color: Colors.orange.withValues(alpha: 0.1),
+                              child: const Icon(Icons.folder, color: Colors.orangeAccent, size: 28),
                             )
-                          : const Icon(Icons.video_file, size: 40, color: Colors.deepPurpleAccent)),
-                  title: Text(item['name']),
-                  subtitle: Text('${(item['size'] / (1024 * 1024)).toStringAsFixed(2)} MB'),
+                          : (item['thumbnail'] != null && item['thumbnail'].toString().isNotEmpty
+                              ? Image.network(
+                                  'http://${widget.serverIp}:8080/thumb/${item['id']}',
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    color: Colors.deepPurple.withValues(alpha: 0.1),
+                                    child: const Icon(Icons.play_circle_fill, color: Colors.deepPurpleAccent),
+                                  ),
+                                )
+                              : Container(
+                                  color: Colors.deepPurple.withValues(alpha: 0.1),
+                                  child: const Icon(Icons.play_circle_fill, color: Colors.deepPurpleAccent),
+                                )),
+                    ),
+                  ),
+                  title: Text(
+                    item['name'],
+                    style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    _formatSize(item['size']),
+                    style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                  ),
+                  trailing: const Icon(Icons.play_arrow, color: Colors.deepPurpleAccent),
                   onTap: () {
-                    if (isFolder) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Folder browsing not yet fully supported on client.')),
-                      );
-                      return;
-                    }
+                    if (isFolder) return;
                     Navigator.push(
                       context,
                       MaterialPageRoute(

@@ -10,7 +10,8 @@ import 'remote_media_screen.dart';
 class ServerNode {
   final String ip;
   final String name;
-  ServerNode(this.ip, this.name);
+  final String platform;
+  ServerNode(this.ip, this.name, this.platform);
 }
 
 class ConnectServerScreen extends StatefulWidget {
@@ -20,14 +21,25 @@ class ConnectServerScreen extends StatefulWidget {
   State<ConnectServerScreen> createState() => _ConnectServerScreenState();
 }
 
-class _ConnectServerScreenState extends State<ConnectServerScreen> {
+class _ConnectServerScreenState extends State<ConnectServerScreen> with SingleTickerProviderStateMixin {
   bool _isScanning = false;
   final List<ServerNode> _servers = [];
+  late AnimationController _pulseController;
 
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
     _scanNetwork();
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
   }
 
   Future<void> _scanNetwork() async {
@@ -44,7 +56,10 @@ class _ConnectServerScreenState extends State<ConnectServerScreen> {
       if (mounted) {
         setState(() => _isScanning = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not get Wi-Fi IP. Are you connected to Wi-Fi?')),
+          const SnackBar(
+            content: Text('Could not get Wi-Fi IP. Are you connected to Wi-Fi?'),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
       return;
@@ -55,40 +70,37 @@ class _ConnectServerScreenState extends State<ConnectServerScreen> {
 
     for (int i = 1; i <= 255; i++) {
       final ip = '$subnet.$i';
-      if (ip == wifiIp) continue; // Skip self
+      if (ip == wifiIp) continue;
 
       futures.add(() async {
         try {
-          // Fast TCP ping on port 8080
           final socket = await Socket.connect(ip, 8080, timeout: const Duration(milliseconds: 500));
           socket.destroy();
 
-          // If port is open, check /info endpoint to verify it's a StreamSync Node
           final response = await http
               .get(Uri.parse('http://$ip:8080/info'))
               .timeout(const Duration(milliseconds: 1000));
-              
+
           if (response.statusCode == 200) {
             final data = jsonDecode(response.body);
             if (data['deviceName'] != null) {
               if (mounted) {
                 setState(() {
-                  _servers.add(ServerNode(ip, data['deviceName']));
+                  _servers.add(ServerNode(
+                    ip,
+                    data['deviceName'],
+                    data['platform'] ?? 'unknown',
+                  ));
                 });
               }
             }
           }
-        } catch (_) {
-          // Ignore timeouts/connection refused
-        }
+        } catch (_) {}
       }());
     }
 
     await Future.wait(futures);
-
-    if (mounted) {
-      setState(() => _isScanning = false);
-    }
+    if (mounted) setState(() => _isScanning = false);
   }
 
   void _showManualConnectDialog() {
@@ -96,12 +108,17 @@ class _ConnectServerScreenState extends State<ConnectServerScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E2E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Connect Manually'),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'IP Address',
             hintText: 'e.g. 192.168.1.5',
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.05),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
         ),
@@ -110,7 +127,8 @@ class _ConnectServerScreenState extends State<ConnectServerScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.deepPurpleAccent),
             onPressed: () {
               Navigator.pop(context);
               if (controller.text.isNotEmpty) {
@@ -129,11 +147,26 @@ class _ConnectServerScreenState extends State<ConnectServerScreen> {
     );
   }
 
+  IconData _getPlatformIcon(String platform) {
+    switch (platform.toLowerCase()) {
+      case 'android':
+        return Icons.phone_android;
+      case 'ios':
+        return Icons.phone_iphone;
+      case 'windows':
+      case 'linux':
+      case 'macos':
+        return Icons.computer;
+      default:
+        return Icons.devices;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Connect to Server'),
+        title: const Text('Discover Devices', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
             icon: const Icon(Icons.add_link),
@@ -148,13 +181,41 @@ class _ConnectServerScreenState extends State<ConnectServerScreen> {
         ],
       ),
       body: _isScanning && _servers.isEmpty
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Scanning Wi-Fi Network...', style: TextStyle(color: Colors.grey)),
+                  AnimatedBuilder(
+                    animation: _pulseController,
+                    builder: (_, __) {
+                      final scale = 1.0 + (_pulseController.value * 0.15);
+                      return Transform.scale(
+                        scale: scale,
+                        child: Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.deepPurpleAccent.withValues(alpha: 0.1),
+                            border: Border.all(
+                              color: Colors.deepPurpleAccent.withValues(alpha: 0.3),
+                              width: 2,
+                            ),
+                          ),
+                          child: const Icon(Icons.wifi_find, size: 48, color: Colors.deepPurpleAccent),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Scanning Wi-Fi Network...',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Looking for StreamSync devices',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                  ),
                 ],
               ),
             )
@@ -163,42 +224,59 @@ class _ConnectServerScreenState extends State<ConnectServerScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.wifi_off, size: 64, color: Colors.grey),
+                      Icon(Icons.devices_other, size: 72, color: Colors.grey[700]),
                       const SizedBox(height: 16),
-                      const Text(
-                        'No StreamSync hosts found.\nMake sure the other device has the app open.',
+                      Text(
+                        'No devices found',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.grey[500]),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Make sure the other device is running\nStreamSync on the same Wi-Fi network',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
                       ),
                       const SizedBox(height: 24),
-                      ElevatedButton.icon(
+                      FilledButton.icon(
                         icon: const Icon(Icons.refresh),
                         label: const Text('Scan Again'),
+                        style: FilledButton.styleFrom(backgroundColor: Colors.deepPurpleAccent),
                         onPressed: _scanNetwork,
                       ),
                     ],
                   ),
                 )
-              : ListView.builder(
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemCount: _servers.length,
                   itemBuilder: (context, index) {
                     final server = _servers[index];
-                    return ListTile(
-                      leading: const CircleAvatar(
-                        backgroundColor: Colors.deepPurpleAccent,
-                        child: Icon(Icons.tv, color: Colors.white),
-                      ),
-                      title: Text(server.name),
-                      subtitle: Text(server.ip),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => RemoteMediaScreen(serverIp: server.ip),
+                    return Card(
+                      color: const Color(0xFF1E1E2E),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        leading: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.deepPurpleAccent.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        );
-                      },
+                          child: Icon(_getPlatformIcon(server.platform), color: Colors.deepPurpleAccent),
+                        ),
+                        title: Text(server.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(server.ip, style: TextStyle(color: Colors.grey[500])),
+                        trailing: const Icon(Icons.chevron_right, color: Colors.deepPurpleAccent),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RemoteMediaScreen(serverIp: server.ip),
+                            ),
+                          );
+                        },
+                      ),
                     );
                   },
                 ),
