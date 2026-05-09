@@ -7,11 +7,11 @@ import 'package:filesystem_picker/filesystem_picker.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 
-import '../../core/constants/app_constants.dart';
-import '../../core/utils/formatters.dart';
-import '../../features/shared_library/providers/shared_library_provider.dart';
-import '../../features/player/video_player_screen.dart';
-import '../../features/client/connect_server_screen.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/formatters.dart';
+import '../providers/shared_library_provider.dart';
+import '../../../player/presentation/screens/video_player_screen.dart';
+import '../../../discovery/presentation/screens/connect_server_screen.dart';
 
 class SharedMediaScreen extends ConsumerStatefulWidget {
   const SharedMediaScreen({super.key});
@@ -354,7 +354,7 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
                 ),
                 Switch(
                   value: _serverRunning,
-                  activeColor: AppColors.accent,
+                  activeThumbColor: AppColors.accent,
                   onChanged: (_) => _toggleServer(),
                 ),
               ],

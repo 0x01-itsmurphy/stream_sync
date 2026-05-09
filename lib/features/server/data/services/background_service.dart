@@ -1,14 +1,12 @@
-import 'dart:async';
-import 'dart:ui';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 
-import '../constants/app_constants.dart';
-import '../storage/database_service.dart';
-import '../../features/media_server/http_server_service.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../sources/database_service.dart';
+import 'http_server_service.dart';
 
 Future<void> initializeBackgroundService() async {
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
@@ -56,7 +54,7 @@ void onStart(ServiceInstance service) async {
 
   // Get local IP
   final info = NetworkInfo();
-  final ip = await info.getWifiIP();
+  await info.getWifiIP();
 
   // Start HTTP server
     final server = HttpServerService(dbService, onConnectionRequest: (ip) {

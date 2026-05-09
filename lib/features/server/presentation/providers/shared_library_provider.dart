@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:path_provider/path_provider.dart';
 
-import '../../../core/storage/database_service.dart';
-import '../../../core/storage/models/media_item.dart';
+import '../../data/sources/database_service.dart';
+import '../../domain/models/media_item.dart';
 
 final sharedLibraryProvider =
     StateNotifierProvider<SharedLibraryNotifier, List<MediaItem>>((ref) {

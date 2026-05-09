@@ -1,8 +1,8 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'models/device_node.dart';
-import 'models/media_item.dart';
+import '../../../discovery/domain/models/device_node.dart';
+import '../../domain/models/media_item.dart';
 
 final databaseServiceProvider = Provider<DatabaseService>((ref) {
   throw UnimplementedError('DatabaseService is not initialized');

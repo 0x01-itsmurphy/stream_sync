@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-import '../../core/constants/app_constants.dart';
-import '../../core/utils/formatters.dart';
-import '../player/video_player_screen.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/formatters.dart';
+import '../../../player/presentation/screens/video_player_screen.dart';
 
 class RemoteMediaScreen extends StatefulWidget {
   final String serverIp;

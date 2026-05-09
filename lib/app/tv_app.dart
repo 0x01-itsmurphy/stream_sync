@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 
-import '../../core/constants/app_constants.dart';
-import '../../features/shared_library/providers/shared_library_provider.dart';
-import '../../features/player/video_player_screen.dart';
-import '../../features/client/connect_server_screen.dart';
+import '../core/constants/app_constants.dart';
+import '../features/server/presentation/providers/shared_library_provider.dart';
+import '../features/player/presentation/screens/video_player_screen.dart';
+import '../features/discovery/presentation/screens/connect_server_screen.dart';
 
 class TvHomeScreen extends ConsumerWidget {
   const TvHomeScreen({super.key});

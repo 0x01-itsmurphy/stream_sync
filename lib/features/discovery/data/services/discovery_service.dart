@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:multicast_dns/multicast_dns.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 
-import '../../../core/storage/models/device_node.dart';
+import '../../domain/models/device_node.dart';
 
 final discoveryServiceProvider = Provider<DiscoveryService>((ref) {
   return DiscoveryService();

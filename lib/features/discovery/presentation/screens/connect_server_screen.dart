@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:network_info_plus/network_info_plus.dart';
 
-import '../../core/constants/app_constants.dart';
-import 'remote_media_screen.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../client/presentation/screens/remote_media_screen.dart';
 
 class ServerNode {
   final String ip;

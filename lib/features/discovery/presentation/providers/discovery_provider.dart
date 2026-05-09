@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:streamsync/features/discovery/services/discovery_service.dart';
-import '../../../core/storage/models/device_node.dart';
+import '../../data/services/discovery_service.dart';
+import '../../domain/models/device_node.dart';
 
 final discoveredDevicesProvider = StateNotifierProvider<DiscoveredDevicesNotifier, List<DeviceNode>>((ref) {
   final service = ref.watch(discoveryServiceProvider);

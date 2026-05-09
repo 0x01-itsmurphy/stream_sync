@@ -14,7 +14,7 @@ class MediaItem extends HiveObject {
   late String path;
 
   @HiveField(3)
-  late String type;
+  late String type; // 'video', 'audio', 'folder'
 
   @HiveField(4)
   late int size;
@@ -31,9 +31,7 @@ class MediaItem extends HiveObject {
     required this.path,
     required this.type,
     required this.size,
-    this.durationMillis = 0,
-    this.thumbnailPath = '',
+    required this.durationMillis,
+    required this.thumbnailPath,
   });
-
-  Duration get duration => Duration(milliseconds: durationMillis);
 }
