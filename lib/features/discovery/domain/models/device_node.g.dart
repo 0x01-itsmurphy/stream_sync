@@ -21,6 +21,7 @@ class DeviceNodeAdapter extends TypeAdapter<DeviceNode> {
       name: fields[1] as String,
       ip: fields[2] as String,
       port: fields[3] as int,
+      platform: fields[6] as String,
       isTv: fields[4] as bool,
       isApproved: fields[5] as bool,
     );
@@ -29,7 +30,7 @@ class DeviceNodeAdapter extends TypeAdapter<DeviceNode> {
   @override
   void write(BinaryWriter writer, DeviceNode obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.deviceId)
       ..writeByte(1)
@@ -41,7 +42,9 @@ class DeviceNodeAdapter extends TypeAdapter<DeviceNode> {
       ..writeByte(4)
       ..write(obj.isTv)
       ..writeByte(5)
-      ..write(obj.isApproved);
+      ..write(obj.isApproved)
+      ..writeByte(6)
+      ..write(obj.platform);
   }
 
   @override

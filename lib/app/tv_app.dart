@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 
 import '../core/constants/app_constants.dart';
-import '../features/server/presentation/providers/shared_library_provider.dart';
+import '../features/server/presentation/providers/shared_media_controller.dart';
 import '../features/player/presentation/screens/video_player_screen.dart';
 import '../features/discovery/presentation/screens/connect_server_screen.dart';
 
@@ -12,7 +12,7 @@ class TvHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mediaItems = ref.watch(sharedLibraryProvider);
+    final mediaItems = ref.watch(sharedMediaControllerProvider).sharedFiles;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A12),

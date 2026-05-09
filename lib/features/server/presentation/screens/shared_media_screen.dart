@@ -1,191 +1,21 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 
-import 'package:permission_handler/permission_handler.dart';
-import 'package:filesystem_picker/filesystem_picker.dart';
-import 'package:network_info_plus/network_info_plus.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/utils/formatters.dart';
-import '../providers/shared_library_provider.dart';
-import '../../../player/presentation/screens/video_player_screen.dart';
+import '../../../../core/utils/snackbar_utils.dart';
 import '../../../discovery/presentation/screens/connect_server_screen.dart';
+import '../../../player/presentation/screens/video_player_screen.dart';
+import '../providers/shared_media_controller.dart';
 
-class SharedMediaScreen extends ConsumerStatefulWidget {
+class SharedMediaScreen extends ConsumerWidget {
   const SharedMediaScreen({super.key});
-
-  @override
-  ConsumerState<SharedMediaScreen> createState() => _SharedMediaScreenState();
-}
-
-class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
-  String? _localIp;
-  bool _serverRunning = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadIp();
-    _checkServiceStatus();
-  }
-
-  Future<void> _checkServiceStatus() async {
-    final running = await FlutterBackgroundService().isRunning();
-    if (mounted) setState(() => _serverRunning = running);
-  }
-
-  Future<void> _toggleServer() async {
-    final service = FlutterBackgroundService();
-    if (_serverRunning) {
-      service.invoke('stopService');
-      await Future.delayed(const Duration(milliseconds: 500));
-    } else {
-      await service.startService();
-      await Future.delayed(const Duration(milliseconds: 500));
-    }
-    await _checkServiceStatus();
-  }
-
-  Future<void> _loadIp() async {
-    final info = NetworkInfo();
-    final ip = await info.getWifiIP();
-    if (mounted) setState(() => _localIp = ip);
-  }
-
-  Future<bool> _requestPermission(BuildContext context) async {
-    if (Platform.isAndroid) {
-      if (!await Permission.manageExternalStorage.request().isGranted) {
-        if (!context.mounted) return false;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('All Files Access permission is required.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        return false;
-      }
-    }
-    return true;
-  }
-
-  Future<void> _pickFile(
-    BuildContext context,
-    SharedLibraryNotifier notifier,
-  ) async {
-    if (!await _requestPermission(context)) return;
-    if (!context.mounted) return;
-
-    Directory rootDir = Platform.isAndroid
-        ? Directory('/storage/emulated/0')
-        : Directory('/');
-
-    String? path = await FilesystemPicker.open(
-      title: 'Pick a Video',
-      context: context,
-      rootDirectory: rootDir,
-      fsType: FilesystemType.file,
-      allowedExtensions: ['.mp4', '.mkv', '.mov', '.avi'],
-      pickText: 'Add this video',
-      folderIconColor: Colors.deepPurpleAccent,
-    );
-
-    if (path != null) {
-      await notifier.addFilesByPaths([path]);
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Video added successfully!'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  Future<void> _pickFolderAndScan(
-    BuildContext context,
-    SharedLibraryNotifier notifier,
-  ) async {
-    if (!await _requestPermission(context)) return;
-    if (!context.mounted) return;
-
-    Directory rootDir = Platform.isAndroid
-        ? Directory('/storage/emulated/0')
-        : Directory('/');
-
-    String? path = await FilesystemPicker.open(
-      title: 'Pick a Folder to Scan',
-      context: context,
-      rootDirectory: rootDir,
-      fsType: FilesystemType.folder,
-      pickText: 'Add all videos in this folder',
-      folderIconColor: Colors.deepPurpleAccent,
-    );
-
-    if (path != null) {
-      if (!context.mounted) return;
-
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          backgroundColor: AppColors.cardBackground,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          content: const Row(
-            children: [
-              CircularProgressIndicator(color: Colors.deepPurpleAccent),
-              SizedBox(width: 20),
-              Text(
-                'Scanning for videos...',
-                style: TextStyle(color: Colors.white),
-              ),
-            ],
-          ),
-        ),
-      );
-
-      final folder = Directory(path);
-      final paths = <String>[];
-      if (folder.existsSync()) {
-        try {
-          await for (final e in folder.list(recursive: true)) {
-            if (e is File) {
-              final lower = e.path.toLowerCase();
-              if (lower.endsWith('.mp4') ||
-                  lower.endsWith('.mkv') ||
-                  lower.endsWith('.mov') ||
-                  lower.endsWith('.avi')) {
-                paths.add(e.path);
-              }
-            }
-          }
-        } catch (e) {
-          print('Scan error: $e');
-        }
-      }
-
-      await notifier.addFilesByPaths(paths);
-
-      if (!context.mounted) return;
-      Navigator.pop(context);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Added ${paths.length} video${paths.length == 1 ? '' : 's'}!',
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
 
   Future<void> _showAddOptions(
     BuildContext context,
-    SharedLibraryNotifier notifier,
+    SharedMediaController controller,
   ) async {
     showModalBottomSheet(
       context: context,
@@ -228,7 +58,7 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
                   subtitle: const Text('Select a specific video file'),
                   onTap: () {
                     Navigator.pop(context);
-                    _pickFile(context, notifier);
+                    controller.pickFile(context);
                   },
                 ),
                 const SizedBox(height: 4),
@@ -251,7 +81,7 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
                   subtitle: const Text('Find all videos inside a folder'),
                   onTap: () {
                     Navigator.pop(context);
-                    _pickFolderAndScan(context, notifier);
+                    controller.pickFolderAndScan(context);
                   },
                 ),
               ],
@@ -263,9 +93,13 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final mediaItems = ref.watch(sharedLibraryProvider);
-    final notifier = ref.read(sharedLibraryProvider.notifier);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controllerState = ref.watch(sharedMediaControllerProvider);
+    final controller = ref.read(sharedMediaControllerProvider.notifier);
+
+    final mediaItems = controllerState.sharedFiles;
+    final serverRunning = controllerState.isServerRunning;
+    final localIp = controllerState.localIp;
 
     return Scaffold(
       appBar: AppBar(
@@ -295,7 +129,7 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: _serverRunning
+                colors: serverRunning
                     ? [
                         Colors.deepPurpleAccent.withValues(alpha: 0.2),
                         Colors.deepPurple.withValues(alpha: 0.1),
@@ -307,7 +141,7 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
               ),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: _serverRunning
+                color: serverRunning
                     ? Colors.deepPurpleAccent.withValues(alpha: 0.3)
                     : Colors.grey.withValues(alpha: 0.2),
               ),
@@ -317,14 +151,14 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _serverRunning
+                    color: serverRunning
                         ? Colors.green.withValues(alpha: 0.15)
                         : Colors.grey.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
-                    _serverRunning ? Icons.wifi : Icons.wifi_off,
-                    color: _serverRunning ? Colors.greenAccent : Colors.grey,
+                    serverRunning ? Icons.wifi : Icons.wifi_off,
+                    color: serverRunning ? Colors.greenAccent : Colors.grey,
                     size: 20,
                   ),
                 ),
@@ -334,15 +168,15 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _serverRunning ? 'Server Active' : 'Server Off',
+                        serverRunning ? 'Server Active' : 'Server Off',
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                         ),
                       ),
                       Text(
-                        _serverRunning
-                            ? '${_localIp ?? '...'}:${AppConstants.serverPort}  •  ${mediaItems.length} file${mediaItems.length == 1 ? '' : 's'} shared'
+                        serverRunning
+                            ? '${localIp ?? '...'}:${AppConstants.serverPort}  •  ${mediaItems.length} file${mediaItems.length == 1 ? '' : 's'} shared'
                             : 'Tap toggle to start sharing',
                         style: TextStyle(
                           color: AppColors.textMuted,
@@ -353,9 +187,9 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
                   ),
                 ),
                 Switch(
-                  value: _serverRunning,
+                  value: serverRunning,
                   activeThumbColor: AppColors.accent,
-                  onChanged: (_) => _toggleServer(),
+                  onChanged: (_) => controller.toggleServer(),
                 ),
               ],
             ),
@@ -415,7 +249,8 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
                             size: 28,
                           ),
                         ),
-                        onDismissed: (_) => notifier.removeMedia(item.mediaId),
+                        onDismissed: (_) =>
+                            controller.removeMedia(item.mediaId),
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -484,13 +319,8 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
                           ),
                           onTap: () {
                             if (isFolder) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Delete this legacy folder and re-add to extract videos.',
-                                  ),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
+                              SnackbarUtils.showMessage(
+                                'Delete this legacy folder and re-add to extract videos.',
                               );
                               return;
                             }
@@ -513,7 +343,7 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddOptions(context, notifier),
+        onPressed: () => _showAddOptions(context, controller),
         icon: const Icon(Icons.add),
         label: const Text(
           'Add Videos',

@@ -37,6 +37,7 @@ class DiscoveryService {
         'name': 'StreamSync Node',
         'ip': ip,
         'port': port,
+        'platform': Platform.operatingSystem,
         'isTv': false, // or logic to determine if TV
       });
       final data = utf8.encode(payload);
@@ -66,6 +67,7 @@ class DiscoveryService {
                 name: map['name'],
                 ip: map['ip'],
                 port: map['port'],
+                platform: map['platform'] ?? 'unknown',
                 isTv: map['isTv'] ?? false,
               );
               

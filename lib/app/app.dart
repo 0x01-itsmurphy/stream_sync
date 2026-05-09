@@ -10,6 +10,7 @@ import '../features/server/presentation/screens/shared_media_screen.dart';
 import 'tv_app.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
+final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 class StreamSyncApp extends ConsumerStatefulWidget {
   const StreamSyncApp({super.key});
@@ -75,6 +76,7 @@ class _StreamSyncAppState extends ConsumerState<StreamSyncApp> {
     return MaterialApp(
       title: 'StreamSync',
       navigatorKey: navigatorKey,
+      scaffoldMessengerKey: scaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       home: const ResponsiveHomeWrapper(),

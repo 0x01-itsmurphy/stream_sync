@@ -7,6 +7,7 @@ import 'package:network_info_plus/network_info_plus.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../sources/database_service.dart';
 import 'http_server_service.dart';
+import '../../../discovery/data/services/discovery_service.dart';
 
 Future<void> initializeBackgroundService() async {
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
@@ -57,12 +58,17 @@ void onStart(ServiceInstance service) async {
   await info.getWifiIP();
 
   // Start HTTP server
-    final server = HttpServerService(dbService, onConnectionRequest: (ip) {
-      service.invoke('connection_request', {'ip': ip});
-    });
-    await server.start(AppConstants.defaultIp, AppConstants.serverPort);
+  final server = HttpServerService(dbService, onConnectionRequest: (ip) {
+    service.invoke('connection_request', {'ip': ip});
+  });
+  await server.start(AppConstants.defaultIp, AppConstants.serverPort);
+
+  // Start LAN discovery advertising
+  final discovery = DiscoveryService();
+  discovery.startAdvertising(AppConstants.serverPort);
 
   service.on('stopService').listen((event) {
+    discovery.stop();
     server.stop();
     service.stopSelf();
   });

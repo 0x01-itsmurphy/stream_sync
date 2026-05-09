@@ -22,11 +22,15 @@ class DeviceNode extends HiveObject {
   @HiveField(5)
   late bool isApproved;
 
+  @HiveField(6)
+  late String platform;
+
   DeviceNode({
     required this.deviceId,
     required this.name,
     required this.ip,
     required this.port,
+    this.platform = 'unknown',
     this.isTv = false,
     this.isApproved = false,
   });
