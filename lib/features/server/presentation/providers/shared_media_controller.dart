@@ -1,15 +1,15 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:permission_handler/permission_handler.dart';
+
 import 'package:filesystem_picker/filesystem_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:network_info_plus/network_info_plus.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 
 import '../../../../core/utils/snackbar_utils.dart';
-import '../../../../core/constants/app_constants.dart';
 import '../../data/sources/database_service.dart';
 import '../../domain/models/media_item.dart';
 
@@ -43,9 +43,9 @@ class SharedMediaState {
 
 final sharedMediaControllerProvider =
     StateNotifierProvider<SharedMediaController, SharedMediaState>((ref) {
-  final db = ref.watch(databaseServiceProvider);
-  return SharedMediaController(ref, db);
-});
+      final db = ref.watch(databaseServiceProvider);
+      return SharedMediaController(ref, db);
+    });
 
 class SharedMediaController extends StateNotifier<SharedMediaState> {
   final DatabaseService _db;
@@ -93,12 +93,12 @@ class SharedMediaController extends StateNotifier<SharedMediaState> {
   }
 
   Future<void> addFilesByPaths(List<String> paths) async {
-    final newItems = <MediaItem>[];
+    final itemsToAdd = <MediaItem>[];
 
+    // Phase 1: Create items and add to UI instantly
     for (final path in paths) {
       final file = File(path);
       if (!file.existsSync()) continue;
-
       if (state.sharedFiles.any((m) => m.path == path)) continue;
 
       final name = path.split(Platform.pathSeparator).last;
@@ -107,40 +107,63 @@ class SharedMediaController extends StateNotifier<SharedMediaState> {
           ? 'video'
           : 'media';
 
-      String thumbnailPath = '';
-      if (mediaType == 'video') {
-        try {
-          final tempDir = await getTemporaryDirectory();
-          final thumb = await VideoThumbnail.thumbnailFile(
-            video: path,
-            thumbnailPath: tempDir.path,
-            imageFormat: ImageFormat.JPEG,
-            maxHeight: 200,
-            quality: 50,
-          );
-          if (thumb != null) thumbnailPath = thumb;
-        } catch (e) {
-          debugPrint('Thumbnail generation failed: $e');
-        }
-      }
-
       final stat = file.statSync();
       final item = MediaItem(
-        mediaId: DateTime.now().millisecondsSinceEpoch.toString() +
-            name.hashCode.toString(),
+        mediaId:
+            DateTime.now().millisecondsSinceEpoch.toString() +
+            path.hashCode.toString(),
         name: name,
         path: path,
         type: mediaType,
         size: stat.size,
         durationMillis: 0,
-        thumbnailPath: thumbnailPath,
+        thumbnailPath: '', // Empty initially
       );
-      newItems.add(item);
+      itemsToAdd.add(item);
     }
 
-    if (newItems.isNotEmpty) {
-      await _db.saveMediaItems(newItems);
-      await _loadSharedFiles();
+    if (itemsToAdd.isEmpty) return;
+
+    // Save to DB and update UI immediately
+    await _db.saveMediaItems(itemsToAdd);
+    await _loadSharedFiles();
+
+    // Phase 2: Generate thumbnails in the background
+    _generateThumbnailsInBackground(itemsToAdd);
+  }
+
+  Future<void> _generateThumbnailsInBackground(List<MediaItem> items) async {
+    for (var item in items) {
+      if (item.type != 'video') continue;
+
+      try {
+        final tempDir = await getTemporaryDirectory();
+        final thumb = await VideoThumbnail.thumbnailFile(
+          video: item.path,
+          thumbnailPath: tempDir.path,
+          imageFormat: ImageFormat.JPEG,
+          maxHeight: 200,
+          quality: 50,
+        );
+
+        if (thumb != null) {
+          final updatedItem = item.copyWith(thumbnailPath: thumb);
+
+          // Update item in DB
+          await _db.saveMediaItems([updatedItem]);
+
+          // Update item in current state with a new reference to trigger UI rebuild
+          state = state.copyWith(
+            sharedFiles: state.sharedFiles.map((m) {
+              return m.mediaId == item.mediaId ? updatedItem : m;
+            }).toList(),
+          );
+        }
+      } catch (e) {
+        debugPrint(
+          'Background thumbnail generation failed for ${item.name}: $e',
+        );
+      }
     }
   }
 
@@ -153,8 +176,9 @@ class SharedMediaController extends StateNotifier<SharedMediaState> {
     if (!await requestPermission()) return;
     if (!context.mounted) return;
 
-    Directory rootDir =
-        Platform.isAndroid ? Directory('/storage/emulated/0') : Directory('/');
+    Directory rootDir = Platform.isAndroid
+        ? Directory('/storage/emulated/0')
+        : Directory('/');
 
     String? path = await FilesystemPicker.open(
       title: 'Pick a Video',
@@ -176,8 +200,9 @@ class SharedMediaController extends StateNotifier<SharedMediaState> {
     if (!await requestPermission()) return;
     if (!context.mounted) return;
 
-    Directory rootDir =
-        Platform.isAndroid ? Directory('/storage/emulated/0') : Directory('/');
+    Directory rootDir = Platform.isAndroid
+        ? Directory('/storage/emulated/0')
+        : Directory('/');
 
     String? path = await FilesystemPicker.open(
       title: 'Pick a Folder to Scan',
@@ -206,6 +231,11 @@ class SharedMediaController extends StateNotifier<SharedMediaState> {
                   lower.endsWith('.mov') ||
                   lower.endsWith('.avi')) {
                 paths.add(e.path);
+
+                // Add in batches of 10 for better UX
+                if (paths.length % 10 == 0) {
+                  await addFilesByPaths(paths.sublist(paths.length - 10));
+                }
               }
             }
           }
@@ -214,7 +244,12 @@ class SharedMediaController extends StateNotifier<SharedMediaState> {
         }
       }
 
-      await addFilesByPaths(paths);
+      // Add remaining files
+      final remaining = paths.length % 10;
+      if (remaining > 0) {
+        await addFilesByPaths(paths.sublist(paths.length - remaining));
+      }
+
       state = state.copyWith(isScanning: false);
       if (context.mounted) Navigator.pop(context); // Close scan dialog
       SnackbarUtils.showSuccess('Scan complete! Added ${paths.length} videos.');

@@ -32,6 +32,26 @@ class MediaItem extends HiveObject {
     required this.type,
     required this.size,
     required this.durationMillis,
-    required this.thumbnailPath,
+    this.thumbnailPath = '',
   });
+
+  MediaItem copyWith({
+    String? mediaId,
+    String? name,
+    String? path,
+    String? type,
+    int? size,
+    int? durationMillis,
+    String? thumbnailPath,
+  }) {
+    return MediaItem(
+      mediaId: mediaId ?? this.mediaId,
+      name: name ?? this.name,
+      path: path ?? this.path,
+      type: type ?? this.type,
+      size: size ?? this.size,
+      durationMillis: durationMillis ?? this.durationMillis,
+      thumbnailPath: thumbnailPath ?? this.thumbnailPath,
+    );
+  }
 }
