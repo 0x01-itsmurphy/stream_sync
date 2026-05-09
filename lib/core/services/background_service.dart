@@ -30,7 +30,7 @@ Future<void> initializeBackgroundService() async {
   await service.configure(
     androidConfiguration: AndroidConfiguration(
       onStart: onStart,
-      autoStart: true,
+      autoStart: false,
       isForegroundMode: true,
       notificationChannelId: 'streamsync_channel',
       initialNotificationTitle: 'StreamSync',
@@ -38,7 +38,7 @@ Future<void> initializeBackgroundService() async {
       foregroundServiceNotificationId: 888,
     ),
     iosConfiguration: IosConfiguration(
-      autoStart: true,
+      autoStart: false,
       onForeground: onStart,
       onBackground: onIosBackground,
     ),
