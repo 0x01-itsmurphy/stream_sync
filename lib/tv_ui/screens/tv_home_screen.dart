@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 
+import '../../core/constants/app_constants.dart';
 import '../../features/shared_library/providers/shared_library_provider.dart';
 import '../../features/player/video_player_screen.dart';
 import '../../features/client/connect_server_screen.dart';
@@ -29,10 +30,10 @@ class TvHomeScreen extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.deepPurpleAccent.withValues(alpha: 0.15),
+                        color: AppColors.accent.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.play_circle_fill, color: Colors.deepPurpleAccent, size: 32),
+                      child: const Icon(Icons.play_circle_fill, color: AppColors.accent, size: 32),
                     ),
                     const SizedBox(width: 16),
                     const Column(
@@ -66,7 +67,7 @@ class TvHomeScreen extends ConsumerWidget {
                       icon: const Icon(Icons.cast, color: Colors.white, size: 20),
                       label: const Text('Connect', style: TextStyle(color: Colors.white, fontSize: 16)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepPurpleAccent,
+                        backgroundColor: AppColors.accent,
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
@@ -133,7 +134,7 @@ class TvHomeScreen extends ConsumerWidget {
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) => VideoPlayerScreen(
-                                      streamUrl: 'http://127.0.0.1:8080/stream/${item.mediaId}',
+                                      streamUrl: 'http://${AppConstants.localhost}:${AppConstants.serverPort}/stream/${item.mediaId}',
                                       title: item.name,
                                     ),
                                   ),

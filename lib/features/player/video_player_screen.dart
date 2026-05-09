@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import '../../core/constants/app_constants.dart';
+import '../../core/utils/formatters.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
   final String streamUrl;
@@ -35,20 +37,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     // Configure mpv for maximum compatibility (especially on TV hardware)
     player = Player(
       configuration: PlayerConfiguration(
-        // Buffer more for network streams
-        bufferSize: 32 * 1024 * 1024, // 32 MB
+        bufferSize: AppConstants.playerBufferSize,
       ),
     );
 
-    // Access the native mpv player for advanced configuration
     final nativePlayer = player.platform as NativePlayer;
-    // Force software decoding on Android TV to avoid green squares / broken frames.
-    // hwdec=no tells mpv to use CPU decoding instead of the TV's weak hardware decoder.
     nativePlayer.setProperty('hwdec', 'no');
     nativePlayer.setProperty('vo', 'gpu');
-    // Increase demuxer readahead for smoother streaming
-    nativePlayer.setProperty('demuxer-max-bytes', '50MiB');
-    nativePlayer.setProperty('demuxer-max-back-bytes', '25MiB');
+    nativePlayer.setProperty('demuxer-max-bytes', AppConstants.demuxerMaxBytes);
+    nativePlayer.setProperty('demuxer-max-back-bytes', AppConstants.demuxerMaxBackBytes);
     nativePlayer.setProperty('cache', 'yes');
 
     controller = VideoController(player);
@@ -89,13 +86,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     player.dispose();
     super.dispose();
-  }
-
-  String _formatDuration(Duration d) {
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return h > 0 ? '$h:$m:$s' : '$m:$s';
   }
 
   void _toggleControls() {
@@ -260,14 +250,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                             // Play / Pause
                             Container(
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.15),
+                                color: AppColors.textPrimary.withValues(alpha: 0.15),
                                 shape: BoxShape.circle,
                               ),
                               child: IconButton(
                                 iconSize: 56,
                                 icon: Icon(
                                   _isPlaying ? Icons.pause : Icons.play_arrow,
-                                  color: Colors.white,
+                                  color: AppColors.textPrimary,
                                 ),
                                 onPressed: () => player.playOrPause(),
                               ),
@@ -294,10 +284,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                   thumbShape: const RoundSliderThumbShape(
                                     enabledThumbRadius: 7,
                                   ),
-                                  activeTrackColor: Colors.deepPurpleAccent,
-                                  inactiveTrackColor: Colors.white24,
-                                  thumbColor: Colors.deepPurpleAccent,
-                                  overlayColor: Colors.deepPurpleAccent
+                                  activeTrackColor: AppColors.accent,
+                                  inactiveTrackColor: AppColors.textPrimary.withValues(alpha: 0.24),
+                                  thumbColor: AppColors.accent,
+                                  overlayColor: AppColors.accent
                                       .withValues(alpha: 0.2),
                                 ),
                                 child: Slider(
@@ -329,16 +319,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      _formatDuration(_position),
+                                      AppFormatters.formatDuration(_position),
                                       style: const TextStyle(
-                                        color: Colors.white70,
+                                        color: AppColors.textSecondary,
                                         fontSize: 13,
                                       ),
                                     ),
                                     Text(
-                                      _formatDuration(_duration),
+                                      AppFormatters.formatDuration(_duration),
                                       style: const TextStyle(
-                                        color: Colors.white70,
+                                        color: AppColors.textSecondary,
                                         fontSize: 13,
                                       ),
                                     ),

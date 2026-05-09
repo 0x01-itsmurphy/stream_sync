@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:network_info_plus/network_info_plus.dart';
 
+import '../../core/constants/app_constants.dart';
 import 'remote_media_screen.dart';
 
 class ServerNode {
@@ -74,12 +75,12 @@ class _ConnectServerScreenState extends State<ConnectServerScreen> with SingleTi
 
       futures.add(() async {
         try {
-          final socket = await Socket.connect(ip, 8080, timeout: const Duration(milliseconds: 500));
+          final socket = await Socket.connect(ip, AppConstants.serverPort, timeout: const Duration(milliseconds: AppConstants.networkScanTimeoutMs));
           socket.destroy();
 
           final response = await http
-              .get(Uri.parse('http://$ip:8080/info'))
-              .timeout(const Duration(milliseconds: 1000));
+              .get(Uri.parse('http://$ip:${AppConstants.serverPort}/info'))
+              .timeout(const Duration(milliseconds: AppConstants.infoRequestTimeoutMs));
 
           if (response.statusCode == 200) {
             final data = jsonDecode(response.body);
@@ -108,7 +109,7 @@ class _ConnectServerScreenState extends State<ConnectServerScreen> with SingleTi
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E2E),
+        backgroundColor: AppColors.cardBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Connect Manually'),
         content: TextField(
@@ -265,21 +266,21 @@ class _ConnectServerScreenState extends State<ConnectServerScreen> with SingleTi
                   itemBuilder: (context, index) {
                     final server = _servers[index];
                     return Card(
-                      color: const Color(0xFF1E1E2E),
+                      color: AppColors.cardBackground,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       child: ListTile(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         leading: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.deepPurpleAccent.withValues(alpha: 0.15),
+                            color: AppColors.accent.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Icon(_getPlatformIcon(server.platform), color: Colors.deepPurpleAccent),
+                          child: Icon(_getPlatformIcon(server.platform), color: AppColors.accent),
                         ),
                         title: Text(server.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text(server.ip, style: TextStyle(color: Colors.grey[500])),
-                        trailing: const Icon(Icons.chevron_right, color: Colors.deepPurpleAccent),
+                        subtitle: Text(server.ip, style: TextStyle(color: AppColors.textMuted)),
+                        trailing: const Icon(Icons.chevron_right, color: AppColors.accent),
                         onTap: () {
                           Navigator.push(
                             context,

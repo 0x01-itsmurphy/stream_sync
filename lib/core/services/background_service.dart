@@ -6,15 +6,16 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 
+import '../constants/app_constants.dart';
 import '../storage/database_service.dart';
 import '../../features/media_server/http_server_service.dart';
 
 Future<void> initializeBackgroundService() async {
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
-    'streamsync_channel', // id
-    'StreamSync Service', // title
-    description: 'Runs the local media server in the background.', // description
-    importance: Importance.low, // importance must be at low or higher level
+    AppConstants.notificationChannelId, // id
+    AppConstants.notificationChannelName, // title
+    description: AppConstants.notificationContent, // description
+    importance: Importance.low,
   );
 
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
@@ -32,10 +33,10 @@ Future<void> initializeBackgroundService() async {
       onStart: onStart,
       autoStart: false,
       isForegroundMode: true,
-      notificationChannelId: 'streamsync_channel',
-      initialNotificationTitle: 'StreamSync',
-      initialNotificationContent: 'Media server is running in background',
-      foregroundServiceNotificationId: 888,
+      notificationChannelId: AppConstants.notificationChannelId,
+      initialNotificationTitle: AppConstants.notificationTitle,
+      initialNotificationContent: AppConstants.notificationContent,
+      foregroundServiceNotificationId: AppConstants.foregroundNotificationId,
     ),
     iosConfiguration: IosConfiguration(
       autoStart: false,
@@ -58,10 +59,10 @@ void onStart(ServiceInstance service) async {
   final ip = await info.getWifiIP();
 
   // Start HTTP server
-  final server = HttpServerService(dbService, onConnectionRequest: (ip) {
-    service.invoke('connection_request', {'ip': ip});
-  });
-  await server.start('0.0.0.0', 8080);
+    final server = HttpServerService(dbService, onConnectionRequest: (ip) {
+      service.invoke('connection_request', {'ip': ip});
+    });
+    await server.start(AppConstants.defaultIp, AppConstants.serverPort);
 
   service.on('stopService').listen((event) {
     server.stop();

@@ -7,6 +7,8 @@ import 'package:filesystem_picker/filesystem_picker.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 
+import '../../core/constants/app_constants.dart';
+import '../../core/utils/formatters.dart';
 import '../../features/shared_library/providers/shared_library_provider.dart';
 import '../../features/player/video_player_screen.dart';
 import '../../features/client/connect_server_screen.dart';
@@ -128,7 +130,7 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1E1E2E),
+          backgroundColor: AppColors.cardBackground,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -187,7 +189,7 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
   ) async {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E1E2E),
+      backgroundColor: AppColors.cardBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -258,13 +260,6 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
         );
       },
     );
-  }
-
-  String _formatSize(int bytes) {
-    if (bytes >= 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
-    }
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
   @override
@@ -347,16 +342,19 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
                       ),
                       Text(
                         _serverRunning
-                            ? '${_localIp ?? '...'}:8080  •  ${mediaItems.length} file${mediaItems.length == 1 ? '' : 's'} shared'
+                            ? '${_localIp ?? '...'}:${AppConstants.serverPort}  •  ${mediaItems.length} file${mediaItems.length == 1 ? '' : 's'} shared'
                             : 'Tap toggle to start sharing',
-                        style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                        style: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 Switch(
                   value: _serverRunning,
-                  activeColor: Colors.deepPurpleAccent,
+                  activeColor: AppColors.accent,
                   onChanged: (_) => _toggleServer(),
                 ),
               ],
@@ -474,15 +472,15 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           subtitle: Text(
-                            _formatSize(item.size),
+                            AppFormatters.formatSize(item.size),
                             style: TextStyle(
-                              color: Colors.grey[500],
+                              color: AppColors.textMuted,
                               fontSize: 13,
                             ),
                           ),
                           trailing: const Icon(
                             Icons.play_arrow,
-                            color: Colors.deepPurpleAccent,
+                            color: AppColors.accent,
                           ),
                           onTap: () {
                             if (isFolder) {
@@ -501,7 +499,7 @@ class _SharedMediaScreenState extends ConsumerState<SharedMediaScreen> {
                               MaterialPageRoute(
                                 builder: (_) => VideoPlayerScreen(
                                   streamUrl:
-                                      'http://127.0.0.1:8080/stream/${item.mediaId}',
+                                      'http://${AppConstants.localhost}:${AppConstants.serverPort}/stream/${item.mediaId}',
                                   title: item.name,
                                 ),
                               ),

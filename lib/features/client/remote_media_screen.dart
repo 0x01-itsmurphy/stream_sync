@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import '../../core/constants/app_constants.dart';
+import '../../core/utils/formatters.dart';
 import '../player/video_player_screen.dart';
 
 class RemoteMediaScreen extends StatefulWidget {
@@ -41,13 +43,13 @@ class _RemoteMediaScreenState extends State<RemoteMediaScreen> with SingleTicker
   Future<void> _fetchMedia() async {
     try {
       final response = await http
-          .get(Uri.parse('http://${widget.serverIp}:8080/media'))
+          .get(Uri.parse('http://${widget.serverIp}:${AppConstants.serverPort}/media'))
           .timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 403) {
         if (mounted && !_isApproved) {
           _pollingTimer?.cancel();
-          _pollingTimer = Timer(const Duration(seconds: 2), _fetchMedia);
+          _pollingTimer = Timer(const Duration(seconds: AppConstants.handshakePollingIntervalSeconds), _fetchMedia);
         }
       } else if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as List;
@@ -64,16 +66,9 @@ class _RemoteMediaScreenState extends State<RemoteMediaScreen> with SingleTicker
     } catch (e) {
       if (mounted && !_isApproved) {
         _pollingTimer?.cancel();
-        _pollingTimer = Timer(const Duration(seconds: 2), _fetchMedia);
+        _pollingTimer = Timer(const Duration(seconds: AppConstants.handshakePollingIntervalSeconds), _fetchMedia);
       }
     }
-  }
-
-  String _formatSize(num bytes) {
-    if (bytes >= 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
-    }
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
   @override
@@ -215,7 +210,7 @@ class _RemoteMediaScreenState extends State<RemoteMediaScreen> with SingleTicker
                             )
                           : (item['thumbnail'] != null && item['thumbnail'].toString().isNotEmpty
                               ? Image.network(
-                                  'http://${widget.serverIp}:8080/thumb/${item['id']}',
+                                  'http://${widget.serverIp}:${AppConstants.serverPort}/thumb/${item['id']}',
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) => Container(
                                     color: Colors.deepPurple.withValues(alpha: 0.1),
@@ -235,17 +230,17 @@ class _RemoteMediaScreenState extends State<RemoteMediaScreen> with SingleTicker
                     overflow: TextOverflow.ellipsis,
                   ),
                   subtitle: Text(
-                    _formatSize(item['size']),
-                    style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                    AppFormatters.formatSize(item['size']),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 13),
                   ),
-                  trailing: const Icon(Icons.play_arrow, color: Colors.deepPurpleAccent),
+                  trailing: const Icon(Icons.play_arrow, color: AppColors.accent),
                   onTap: () {
                     if (isFolder) return;
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => VideoPlayerScreen(
-                          streamUrl: 'http://${widget.serverIp}:8080/stream/${item['id']}',
+                          streamUrl: 'http://${widget.serverIp}:${AppConstants.serverPort}/stream/${item['id']}',
                           title: item['name'],
                         ),
                       ),

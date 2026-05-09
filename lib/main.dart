@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:flutter_background_service/flutter_background_service.dart';
 
+import 'core/constants/app_constants.dart';
 import 'core/storage/database_service.dart';
 import 'core/storage/models/device_node.dart';
 import 'core/services/background_service.dart';
@@ -60,7 +61,7 @@ class _StreamSyncAppState extends ConsumerState<StreamSyncApp> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E2E),
+        backgroundColor: AppColors.cardBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Connection Request'),
         content: Text('Device at $ip wants to connect. Allow?'),
@@ -77,7 +78,7 @@ class _StreamSyncAppState extends ConsumerState<StreamSyncApp> {
                 deviceId: 'device_$ip',
                 name: 'Remote Device',
                 ip: ip,
-                port: 8080,
+                port: AppConstants.serverPort,
                 isApproved: true,
               );
               await db.saveDevice(device);
@@ -98,27 +99,27 @@ class _StreamSyncAppState extends ConsumerState<StreamSyncApp> {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
+          seedColor: AppColors.primary,
           brightness: Brightness.dark,
-          surface: const Color(0xFF121218),
+          surface: AppColors.surface,
         ),
-        scaffoldBackgroundColor: const Color(0xFF121218),
+        scaffoldBackgroundColor: AppColors.surface,
         useMaterial3: true,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF121218),
+          backgroundColor: AppColors.surface,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
         ),
         cardTheme: CardThemeData(
-          color: const Color(0xFF1E1E2E),
+          color: AppColors.cardBackground,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
         snackBarTheme: const SnackBarThemeData(
           behavior: SnackBarBehavior.floating,
-          backgroundColor: Color(0xFF2A2A3E),
+          backgroundColor: AppColors.snackBarBackground,
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Colors.deepPurpleAccent,
+          backgroundColor: AppColors.accent,
           foregroundColor: Colors.white,
         ),
       ),
