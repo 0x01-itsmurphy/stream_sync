@@ -113,6 +113,7 @@ class _ConnectServerScreenState extends State<ConnectServerScreen> with SingleTi
         title: const Text('Connect Manually'),
         content: TextField(
           controller: controller,
+          autofocus: true,
           decoration: InputDecoration(
             labelText: 'IP Address',
             hintText: 'e.g. 192.168.1.5',
@@ -121,6 +122,17 @@ class _ConnectServerScreenState extends State<ConnectServerScreen> with SingleTi
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onSubmitted: (value) {
+            Navigator.pop(context);
+            if (value.isNotEmpty) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RemoteMediaScreen(serverIp: value.trim()),
+                ),
+              );
+            }
+          },
         ),
         actions: [
           TextButton(

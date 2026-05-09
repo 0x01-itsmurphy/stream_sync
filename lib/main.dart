@@ -60,6 +60,8 @@ class _StreamSyncAppState extends ConsumerState<StreamSyncApp> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E2E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Connection Request'),
         content: Text('Device at $ip wants to connect. Allow?'),
         actions: [
@@ -68,6 +70,8 @@ class _StreamSyncAppState extends ConsumerState<StreamSyncApp> {
             child: const Text('Deny'),
           ),
           ElevatedButton(
+            autofocus: true,
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurpleAccent),
             onPressed: () async {
               final device = DeviceNode(
                 deviceId: 'device_$ip',

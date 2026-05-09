@@ -22,6 +22,11 @@
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
         
+        <!-- Disable Impeller - fixes green squares on Android TV GPUs -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="false" />
+        
         <!-- Required for flutter_background_service -->
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
